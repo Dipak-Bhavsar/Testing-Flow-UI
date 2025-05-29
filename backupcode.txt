@@ -1,0 +1,122 @@
+onMounted(() => {
+    const instance = getCurrentInstance();
+    if (instance) {
+        instance.appContext.config.globalProperties.$window = window;
+    }
+   
+
+    if (props.id) {
+        const initialLabel = editableValue.value;
+        const exists = parentIds.value.find((id) => id.includes(props.id));
+        if (!exists) {
+            parentIds.value.push(initialLabel);
+            console.log(`🟢 Node Created: ${initialLabel}`);
+            console.log("📋 Current parentIds:", [...parentIds.value]);
+        }
+    }
+
+    showParentIdsIfSendKeys();
+});
+// State
+const lastFour = computed(() => props.id?.slice(-4) || "");
+const editableValue = ref(`${props.data.processorType} ${lastFour.value}`);
+const isEditing = ref(false);
+const parentIds = ref([]); // Only in-memory
+
+// Add or update parent ID in array
+function addOrUpdateParentId(label) {
+    const index = parentIds.value.findIndex((id) => id.includes(props.id));
+    if (index !== -1) {
+        parentIds.value[index] = label;
+        console.log(`📝 Updated: ${label}`);
+    } else {
+        parentIds.value.push(label);
+        console.log(`➕ Added: ${label}`);
+    }
+
+    console.log("📋 Current parentIds:", [...parentIds.value]);
+}
+
+// Save edit
+function saveEdit() {
+    isEditing.value = false;
+    const typed = editableValue.value.replace(new RegExp(`${lastFour.value}$`), "").trim();
+    editableValue.value = `${typed} ${lastFour.value}`;
+    addOrUpdateParentId(editableValue.value);
+    showParentIdsIfSendKeys();
+}
+
+
+
+// localstorage logic
+onMounted(() => {
+    const instance = getCurrentInstance();
+    if (instance) {
+        instance.appContext.config.globalProperties.$window = window;
+    }
+    loadParentIds(); // Load parent IDs from localStorage
+
+    if (props.id) {
+        const initialLabel = editableValue.value;
+        const exists = parentIds.value.find((id) => id.includes(props.id));
+        if (!exists) {
+            parentIds.value.push(initialLabel);
+            console.log(`🟢 Node Created: ${initialLabel}`);
+            console.log("📋 Current parentIds:", [...parentIds.value]);
+            saveParentIds(); // Save to localStorage after adding new node
+        }
+    }
+    showParentIdsIfSendKeys();
+});
+
+const lastFour = computed(() => props.id?.slice(-4) || "");
+const editableValue = ref(`${props.data.processorType} ${lastFour.value}`);
+const isEditing = ref(false);
+const parentIds = ref([]);
+
+// Function to load parentIds from localStorage
+function loadParentIds() {
+    const storedIds = JSON.parse(localStorage.getItem("parentIds")) || [];
+    parentIds.value = storedIds;
+}
+
+// Function to save parentIds to localStorage
+function saveParentIds() {
+    localStorage.setItem("parentIds", JSON.stringify(parentIds.value));
+}
+
+// Save edit and update localStorage
+function saveEdit() {
+    isEditing.value = false;
+    // Clean previous typed text and rebuild label
+    const typed = editableValue.value.replace(new RegExp(`${lastFour.value}$`), "").trim();
+    editableValue.value = `${typed} ${lastFour.value}`;
+    const index = parentIds.value.findIndex((id) => id.includes(props.id));
+
+    if (index !== -1) {
+        console.log(`📝 Editing Node: ${parentIds.value[index]} → ${editableValue.value}`);
+        parentIds.value[index] = editableValue.value;
+    } else {
+        console.log(`➕ Adding New Node: ${editableValue.value}`);
+        parentIds.value.push(editableValue.value);
+    }
+    // Save updated parentIds to localStorage
+    saveParentIds();
+    console.log("📋 Updated parentIds:", [...parentIds.value]);
+    showParentIdsIfSendKeys();
+}
+
+function showParentIdsIfSendKeys() {
+    // Check if the processor type is 'sendKeys'
+    if (props.data.processorType === "sendKeys") {
+        console.log("📤 sendKeys detected — showing all parent IDs:");
+        console.log("🧩 parentIds:", parentIds.value); // Log the parentIds array to the console
+    }
+}
+function clearAllIdsFromLocalStorage() {
+    parentIds.value = [];
+    // Update localStorage with the empty array
+    localStorage.setItem("parentIds", JSON.stringify(parentIds.value));
+
+    console.log("🗑️ All IDs have been removed from parentIds.");
+}
